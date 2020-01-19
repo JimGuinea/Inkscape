@@ -3,12 +3,12 @@
 <!--  -->
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
 	<!-- Nome con cui compare l'estensione nel menù, fa casino con gli underscore _ -->
-	<name>Raster 2 Laser GCode generator</name>
+	<name>Raster 2 Laser GCode generator_luca</name>
 	<!-- il campo ID deve essere univoco  -->
-	<id>com.305engineering.raster2laser_gcode</id>
+	<id>com.305engineering.raster2laser_gcode_luca</id>
 	
 	<!-- Dipendenze, basta solo lo script python principale -->
-	<dependency type="executable" location="extensions">raster2laser_gcode.py</dependency>
+	<dependency type="executable" location="extensions">raster2laser_gcode_luca.py</dependency>
 	<dependency type="executable" location="extensions">inkex.py</dependency>
 	    	
 	<!-- Parametri di input per lo script python che vengono visualizzati nel widget creato da inkscape-->
@@ -25,7 +25,8 @@
 		
 	<param name="bg_color" type="enum" gui-text="Replace transparency with">
 		<_item value="#ffffff">White</_item>
-		<_item value="#000000">Black</_item>
+		<_item value="#FF0000">Black</_item>
+		<_item value="#00ffffff">White with trasparency</_item>
 	</param>
 	
 	<param name="resolution" type="enum" gui-text="Resolution">
@@ -70,7 +71,13 @@
 
 	
 	<!-- Velocità Nero e spostamento -->
-	<param name="speed_ON" type="int" min="1" max="5000" gui-text="Engraving speed">200</param>
+	<param name="speed_ON" type="int" min="1" max="5000" gui-text="Engraving speed (mm/min)">200</param>
+	
+	<!-- Velocità Off -->
+	<param name="speed_OFF" type="int" min="1" max="5000" gui-text="Movement speed (mm/min)">200</param>
+	
+	<!-- Altezza Z -->
+	<param name="Z_height" type="int" min="0" max="200" gui-text="Altezza Z (mm)">0</param>
 	
 	<!-- FLIP = coordinate Cartesiane (False) Coordinate "informatiche" (True) -->
 	<param name="flip_y" type="boolean" gui-text="Flip Y">false</param>
@@ -82,8 +89,11 @@
 		<_item value="3">No Homing</_item>
 	</param>
 	
-	<param name="laseron" type="string"  gui-text="Laser ON Command">M03</param>
-	<param name="laseroff" type="string"  gui-text="Laser OFF Command">M05</param>
+	<param name="laseron" type="string"  gui-text="Laser ON Command">M106</param>
+	<param name="laseroff" type="string"  gui-text="Laser OFF Command">M107</param>
+	
+	<!-- Laser Power -->
+	<param name="laser_power" type="int" min="0" max="255" gui-text="Laser Power (0-255)">200</param>
 	
 	<!-- Anteprima = Solo immagine BN -->
 	<param name="preview_only" type="boolean" gui-text="Preview only">false</param>
@@ -104,7 +114,7 @@
     
 	<!-- Script python da eseguire -->
 	<script>
-    	<command reldir="extensions" interpreter="python">raster2laser_gcode.py</command>
+    	<command reldir="extensions" interpreter="python">raster2laser_gcode_luca.py</command>
     </script>
 </inkscape-extension>
 

@@ -64,8 +64,14 @@ class GcodeExport(inkex.Effect):
 		self.OptionParser.add_option("","--grayscale_resolution",action="store", type="int", dest="grayscale_resolution", default="1",help="") 
 		
 		#Velocita Nero e spostamento
-		self.OptionParser.add_option("","--speed_ON",action="store", type="int", dest="speed_ON", default="200",help="") 
-
+		self.OptionParser.add_option("","--speed_ON",action="store", type="int", dest="speed_ON", default="200",help="")
+		
+		#Velocita laser spento
+		self.OptionParser.add_option("","--speed_OFF",action="store", type="int", dest="speed_OFF",default="2500", help="")
+      
+		#Z height
+		self.OptionParser.add_option("","--Z_height",action="store", type="int", dest="Z_height", default="0",help="")
+      
 		# Mirror Y
 		self.OptionParser.add_option("","--flip_y",action="store", type="inkbool", dest="flip_y", default=False,help="")
 		
@@ -76,6 +82,8 @@ class GcodeExport(inkex.Effect):
 		self.OptionParser.add_option("","--laseron", action="store", type="string", dest="laseron", default="M03", help="")
 		self.OptionParser.add_option("","--laseroff", action="store", type="string", dest="laseroff", default="M05", help="")
 		
+		# Power
+		self.OptionParser.add_option("","--laser_power",action="store", type="int", dest="laser_power", default="255",help="")
 		
 		# Anteprima = Solo immagine BN 
 		self.OptionParser.add_option("","--preview_only",action="store", type="inkbool", dest="preview_only", default=False,help="") 
@@ -146,7 +154,7 @@ class GcodeExport(inkex.Effect):
 			
 			pos_file_png_exported = os.path.join(self.options.directory,self.options.filename+".png") 
 			pos_file_png_BW = os.path.join(self.options.directory,self.options.filename+suffix+"preview.png") 
-			pos_file_gcode = os.path.join(self.options.directory,self.options.filename+suffix+"gcode.txt") 
+			pos_file_gcode = os.path.join(self.options.directory,self.options.filename+suffix+".gcode") 
 			
 
 			#Esporto l'immagine in PNG
@@ -183,7 +191,9 @@ class GcodeExport(inkex.Effect):
 		else:
 			DPI = 254
 
-		command="inkscape -C -e \"%s\" -b\"%s\" %s -d %s" % (pos_file_png_exported,bg_color,current_file,DPI) #Comando da linea di comando per esportare in PNG
+		#command="inkscape -C -e \"%s\"  %s -d %s" % (pos_file_png_exported,current_file,DPI) #Comando da linea di comando per esportare in PNG
+		
+		command="inkscape -C -e \"%s\" -b\"%s\" %s -d %s -y 0" % (pos_file_png_exported,bg_color,current_file,DPI) #Comando da linea di comando per esportare in PNG
 					
 		p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		return_code = p.wait()
@@ -405,7 +415,8 @@ class GcodeExport(inkex.Effect):
 
 		#### SALVO IMMAGINE IN BIANCO E NERO ####
 		file_img_BN = open(pos_file_png_BW, 'wb') #Creo il file
-		Costruttore_img = png.Writer(w, h, greyscale=True, bitdepth=8) #Impostazione del file immagine
+		#Costruttore_img = png.Writer(w, h, greyscale=True, bitdepth=8, alpha=True) #Impostazione del file immagine
+		Costruttore_img = png.Writer(w, h, greyscale=True, bitdepth=8, alpha=False) #Impostazione del file immagine
 		Costruttore_img.write(file_img_BN, matrice_BN) #Costruttore del file immagine
 		file_img_BN.close()	#Chiudo il file
 
@@ -420,7 +431,9 @@ class GcodeExport(inkex.Effect):
 			
 			Laser_ON = False
 			F_G01 = self.options.speed_ON
+			F_G00 = self.options.speed_OFF
 			Scala = self.options.resolution
+			Z_height = self.options.Z_height
 
 			file_gcode = open(pos_file_gcode, 'w')  #Creo il file
 			
@@ -436,6 +449,8 @@ class GcodeExport(inkex.Effect):
 			file_gcode.write('G21; Set units to millimeters\n')			
 			file_gcode.write('G90; Use absolute coordinates\n')				
 			file_gcode.write('G92; Coordinate Offset\n')	
+			
+			file_gcode.write('G1 Z' + str(Z_height) + ';imposto altezza Z iniziale\n')
 
 			#Creazione del Gcode
 			
@@ -450,9 +465,9 @@ class GcodeExport(inkex.Effect):
 						for x in range(w):
 							if matrice_BN[y][x] == N :
 								if Laser_ON == False :
-									#file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + ' F' + str(F_G00) + '\n')
-									file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + '\n') #tolto il Feed sul G00
-									file_gcode.write(self.options.laseron + '\n')			
+									file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + ' F' + str(F_G00) + '\n')
+									#file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + '\n') #tolto il Feed sul G00
+									file_gcode.write(self.options.laseron + ' ' +str(self.options.laser_power) + '\n')			
 									Laser_ON = True
 								if  Laser_ON == True :   #DEVO evitare di uscire dalla matrice
 									if x == w-1 :
@@ -468,9 +483,9 @@ class GcodeExport(inkex.Effect):
 						for x in reversed(range(w)):
 							if matrice_BN[y][x] == N :
 								if Laser_ON == False :
-									#file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + ' F' + str(F_G00) + '\n')
-									file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + '\n') #tolto il Feed sul G00
-									file_gcode.write(self.options.laseron + '\n')			
+									file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + ' F' + str(F_G00) + '\n')
+									#file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + '\n') #tolto il Feed sul G00
+									file_gcode.write(self.options.laseron +  ' ' +str(self.options.laser_power) + '\n')			
 									Laser_ON = True
 								if  Laser_ON == True :   #DEVO evitare di uscire dalla matrice
 									if x == 0 :
@@ -490,7 +505,7 @@ class GcodeExport(inkex.Effect):
 							if matrice_BN[y][x] != B :
 								if Laser_ON == False :
 									file_gcode.write('G00 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) +'\n')
-									file_gcode.write(self.options.laseron + ' '+ ' S' + str(255 - matrice_BN[y][x]) +'\n')
+									file_gcode.write(self.options.laseron +  ' ' +str(self.options.laser_power) + ' S' + str(255 - matrice_BN[y][x]) +'\n')
 									Laser_ON = True
 									
 								if  Laser_ON == True :   #DEVO evitare di uscire dalla matrice
@@ -507,7 +522,7 @@ class GcodeExport(inkex.Effect):
 											
 										elif matrice_BN[y][x] != matrice_BN[y][x+1] :
 											file_gcode.write('G01 X' + str(float(x+1)/Scala) + ' Y' + str(float(y)/Scala) + ' F' + str(F_G01) +'\n')
-											file_gcode.write(self.options.laseron + ' '+ ' S' + str(255 - matrice_BN[y][x+1]) +'\n')												
+											file_gcode.write(self.options.laseron +  ' ' +str(self.options.laser_power) + ' S' + str(255 - matrice_BN[y][x+1]) +'\n')												
 
 					
 					else:
@@ -515,7 +530,7 @@ class GcodeExport(inkex.Effect):
 							if matrice_BN[y][x] != B :
 								if Laser_ON == False :
 									file_gcode.write('G00 X' + str(float(x+1)/Scala) + ' Y' + str(float(y)/Scala) +'\n')
-									file_gcode.write(self.options.laseron + ' '+ ' S' + str(255 - matrice_BN[y][x]) +'\n')
+									file_gcode.write(self.options.laseron +  ' ' +str(self.options.laser_power) +  ' S' + str(255 - matrice_BN[y][x]) +'\n')
 									Laser_ON = True
 									
 								if  Laser_ON == True :   #DEVO evitare di uscire dalla matrice
@@ -532,7 +547,7 @@ class GcodeExport(inkex.Effect):
 											
 										elif  matrice_BN[y][x] != matrice_BN[y][x-1] :
 											file_gcode.write('G01 X' + str(float(x)/Scala) + ' Y' + str(float(y)/Scala) + ' F' + str(F_G01) +'\n')
-											file_gcode.write(self.options.laseron + ' '+ ' S' + str(255 - matrice_BN[y][x-1]) +'\n')
+											file_gcode.write(self.options.laseron + ' ' +str(self.options.laser_power) + ' S' + str(255 - matrice_BN[y][x-1]) +'\n')
 
 			
 			
